@@ -104,6 +104,7 @@ var PIXELS_IN_METER = 50,
     GAME_OBJECT_GROUND = "GAME_OBJECT_GROUND",
     GAME_OBJECT_WATER = "GAME_OBJECT_WATER",
     GAME_OBJECT_SPIKES = "GAME_OBJECT_SPIKES",
+    GAME_OBJECT_GULF = "GAME_OBJECT_GULF" ,
     PLAYER_STATE_RUN = "PLAYER_STATE_RUN",
     PLAYER_STATE_JUMPING = "PLAYER_STATE_JUMPING",
     PLAYER_STATE_FALLING = "PLAYER_STATE_FALLING"
@@ -123,8 +124,8 @@ var MAP_PARTS = [
         9: GAME_OBJECT_GROUND,
         10: GAME_OBJECT_GROUND,
         11: GAME_OBJECT_GROUND,
-        12: GAME_OBJECT_WATER,
-        13: GAME_OBJECT_WATER,
+        12: GAME_OBJECT_GULF,
+        13: GAME_OBJECT_GULF,
         14: GAME_OBJECT_GROUND,
         15: GAME_OBJECT_GROUND,
     },
@@ -140,7 +141,7 @@ var MAP_PARTS = [
         9: GAME_OBJECT_WATER,
         10: GAME_OBJECT_GROUND,
         11: GAME_OBJECT_GROUND,
-        12: GAME_OBJECT_WATER,
+        12: GAME_OBJECT_GULF,
         13: GAME_OBJECT_GROUND,
         14: GAME_OBJECT_GROUND,
         15: GAME_OBJECT_GROUND,
@@ -209,6 +210,19 @@ function GameObjectWater(drawX, drawY) {
     this.name = GAME_OBJECT_WATER
 }
 
+function GameObjectGulf(drawX, drawY) {
+    this.drawX = drawX;
+    this.drawY = drawY;
+    this.worldX = drawX;
+    this.worldY = drawY;
+    this.height = 4 * PIXELS_IN_METER + 5;
+    this.width = 2 * PIXELS_IN_METER;
+    //this.color = "blue"
+    //this.bgImage = assetWater;
+    this.deleteMe = false;
+    this.name = GAME_OBJECT_GULF
+}
+
 function GameObjectSpikes(drawX, drawY) {
     this.drawX = drawX;
     this.drawY = drawY;
@@ -232,11 +246,11 @@ function updateStep(player, gameObjects, timeDeltaSec) {
         updateWorldObject(gameObjects[gameObjectId]);
 
         if (!isCross && gameObjects[gameObjectId].name === GAME_OBJECT_SPIKES) {
-            isCross = crossCheckingSpikes(player.drawX, player.drawY, player.width, player.height, gameObjects[gameObjectId].drawX, gameObjects[gameObjectId].drawY, gameObjects[gameObjectId].width, gameObjects[gameObjectId].height);
+            isCross = checkSpikesCollisions(player.drawX, player.drawY, player.width, player.height, gameObjects[gameObjectId].drawX, gameObjects[gameObjectId].drawY, gameObjects[gameObjectId].width, gameObjects[gameObjectId].height);
         }
 
-        if (!isCross && gameObjects[gameObjectId].name === GAME_OBJECT_WATER) {
-            isCross = crossCheckingWater(player.drawX, player.drawY, player.width, player.height, gameObjects[gameObjectId].drawX, gameObjects[gameObjectId].drawY, gameObjects[gameObjectId].width, gameObjects[gameObjectId].height);
+        if (!isCross && (gameObjects[gameObjectId].name === GAME_OBJECT_WATER || gameObjects[gameObjectId].name === GAME_OBJECT_GULF)) {
+            isCross = checkWaterCollisions(player.drawX, player.drawY, player.width, player.height, gameObjects[gameObjectId].drawX, gameObjects[gameObjectId].drawY, gameObjects[gameObjectId].width, gameObjects[gameObjectId].height);
         }
     }
 
@@ -358,15 +372,24 @@ function choosePlayerState(player) {
     }
 }
 
-
+/**
+ * This function calculate all game object shift by X coordinate
+ *
+ * @param stepGroundShift
+ */
 function updateWorldShift(stepGroundShift) {
     worldShift = worldShift - stepGroundShift;
 }
 
+/**
+ * This function update game object coordinates
+ *
+ * @param worldObject
+ */
 function updateWorldObject(worldObject) {
 
-    worldObject.drawX = worldObject.worldX + worldShift
-    worldObject.drawY = worldObject.worldY
+    worldObject.drawX = worldObject.worldX + worldShift;
+    worldObject.drawY = worldObject.worldY;
 
     if (worldObject.drawX + worldObject.width < 0) {
         worldObject.deleteMe = true;
@@ -386,6 +409,10 @@ function generatePartOfTheMap(x, mapConfig) {
                 tmpGameObject = new GameObjectWater(tmpX, WATER_POSITION);
                 break;
             }
+            case GAME_OBJECT_GULF: {
+                tmpGameObject = new GameObjectGulf(tmpX, WATER_POSITION);
+                break;
+            }
             case GAME_OBJECT_SPIKES: {
                 tmpGameObject = new GameObjectSpikes(tmpX, SPIKES_POSITION);
                 break;
@@ -398,12 +425,36 @@ function generatePartOfTheMap(x, mapConfig) {
     return tmpObjects;
 }
 
-
-function crossCheckingSpikes(x1, y1, w1, h1, x2, y2, w2, h2) {
+/**
+ * This function checking player and spikes collision
+ *
+ * @param x1
+ * @param y1
+ * @param w1
+ * @param h1
+ * @param x2
+ * @param y2
+ * @param w2
+ * @param h2
+ * @returns {boolean}
+ */
+function checkSpikesCollisions(x1, y1, w1, h1, x2, y2, w2, h2) {
     return (y1 + h1 - 10 >= y2) && (x1 + w1 - 30 >= x2) && (x2 + w2 - 30 >= x1)
 }
 
-function crossCheckingWater(x1, y1, w1, h1, x2, y2, w2, h2) {
+/**
+ * This function checking player and water collision
+ * @param x1
+ * @param y1
+ * @param w1
+ * @param h1
+ * @param x2
+ * @param y2
+ * @param w2
+ * @param h2
+ * @returns {boolean}
+ */
+function checkWaterCollisions(x1, y1, w1, h1, x2, y2, w2, h2) {
     return (x1 + w1 * 0.3 >= x2) && (y2 < y1 + h1) && (x2 + w2 - 0.7 * w1 >= x1)
 }
 
@@ -428,7 +479,6 @@ function onkey(ev, key, down, player) {
                 return false;
             }
             break;
-
     }
 }
 
@@ -436,18 +486,24 @@ function onkey(ev, key, down, player) {
 // RENDER
 //-------------------------------------------------------------------------
 
+/**
+ * This function create/draw all visible objects on canvas
+ *
+ * @param canvas
+ * @param ctx
+ * @param dt
+ * @param player
+ * @param gameObjects
+ * @param score
+ */
 function render(canvas, ctx, dt, player, gameObjects, score) {
 
-    //https://jooinn.com/images/sky-panorama-1.jpg
-
     ctx.beginPath();
-    // ctx.fillStyle = "navy";
     if (player.isDead) {
         ctx.drawImage(assetBackGroundGameOver, 0, 0, canvas.width, canvas.height);
     } else {
         ctx.drawImage(assetBackGround, 0, 0, canvas.width, canvas.height);
     }
-    // ctx.rect(0, 0, canvas.width, canvas.height)
     ctx.closePath();
     ctx.fill();
 
@@ -458,9 +514,14 @@ function render(canvas, ctx, dt, player, gameObjects, score) {
     }
 
     renderScore(ctx, score.toFixed(0))
-
 }
 
+/**
+ * This function render player in all possible cases
+ *
+ * @param ctx
+ * @param player
+ */
 function renderPlayer(ctx, player) {
     ctx.beginPath();
     switch (player.state) {
@@ -516,13 +577,25 @@ function renderPlayer(ctx, player) {
     ctx.fill();
 }
 
+/**
+ * This function render all game objects (spikes, ground, water)
+ * @param ctx
+ * @param object
+ */
 function renderWorldObject(ctx, object) {
     ctx.beginPath();
-    ctx.drawImage(object.bgImage, object.drawX, object.drawY, object.width, object.height)
+    if(object.bgImage){
+        ctx.drawImage(object.bgImage, object.drawX, object.drawY, object.width, object.height)
+    }
     ctx.closePath();
     ctx.fill();
 }
 
+/**
+ * This function draw Score, Gravity, Jump speed
+ * @param ctx
+ * @param score
+ */
 function renderScore(ctx, score) {
     ctx.beginPath();
     ctx.fillStyle = "yellow";
@@ -558,8 +631,6 @@ var fps = 60,
     background = new Image(),
     player = new Player(PLAYER_STARTING_POSITION_X, PLAYER_STARTING_POSITION_Y),
     gameObjects = []
-
-// fpsmeter = new FPSMeter({ decimals: 0, graph: true, theme: 'dark', left: '5px' });
 
 function frame() {
 

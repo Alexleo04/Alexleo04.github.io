@@ -6,5 +6,5 @@ Plan
 * (+) Find collisions and stop game
 * (+) Add pits, puddles
 * (+) Add score, graphic (player, stone, background, ground, pits, puddles)
-* Animate player
-* Add sound effects
+* (+) Animate player
+* (+) Add sound effects
